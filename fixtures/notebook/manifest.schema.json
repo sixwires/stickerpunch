@@ -1,0 +1,38 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "StickerpunchFixtureManifest",
+  "type": "object",
+  "required": ["minDetectionRate", "images"],
+  "properties": {
+    "description": { "type": "string" },
+    "minDetectionRate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Minimum subjects-found / subjects-expected ratio required to pass."
+    },
+    "images": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["file", "expectedSubjects"],
+        "properties": {
+          "file": {
+            "type": "string",
+            "description": "Filename relative to fixtures/notebook/."
+          },
+          "expectedSubjects": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "Number of distinct drawings/subjects a human reader sees on the page."
+          },
+          "notes": { "type": "string" },
+          "knownTouchingSubjects": {
+            "type": "boolean",
+            "description": "Whether this fixture contains touching subjects that exercise the watershed split."
+          }
+        }
+      }
+    }
+  }
+}
