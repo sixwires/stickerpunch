@@ -1,0 +1,6 @@
+{
+  "$schema": "./manifest.schema.json",
+  "description": "Reference notebook photos for the Step 3 auto-detect verification suite. Each entry pairs a fixture filename with the number of distinct subjects a human would expect the detector to find.",
+  "minDetectionRate": 0.8,
+  "images": []
+}
