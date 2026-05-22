@@ -5,6 +5,7 @@ import { useEffect, useRef } from "react";
 import { boxBlurInPlace } from "@/lib/mask/JellyMask";
 import { resampleStroke, type Point } from "@/lib/mask/smoothing";
 import { useWorkspace } from "@/lib/workspace/store";
+import { JellyOutline } from "./JellyOutline";
 
 const ADD_TINT = { r: 34, g: 197, b: 94 }; // green-500
 const TINT_ALPHA_SCALE = 0.85;
@@ -12,6 +13,8 @@ const TINT_ALPHA_SCALE = 0.85;
 export function JellyEditor() {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const jelly = useWorkspace((s) => s.jelly);
+  const source = useWorkspace((s) => s.source);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -219,6 +222,16 @@ export function JellyEditor() {
       aria-label="Jelly mask editor"
     >
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
+      {jelly && source ? (
+        <JellyOutline
+          alpha={jelly.mask.alpha}
+          maskWidth={jelly.mask.width}
+          maskHeight={jelly.mask.height}
+          sourceWidth={source.width}
+          sourceHeight={source.height}
+          version={jelly.version}
+        />
+      ) : null}
     </div>
   );
 }
