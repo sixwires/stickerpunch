@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -73,6 +75,8 @@ export default function RootLayout({
           </nav>
         </header>
         <main className="flex-1 flex flex-col">{children}</main>
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
