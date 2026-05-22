@@ -18,12 +18,42 @@ Construction plan of record: [`plans/stickerpunch-build.md`](plans/stickerpunch-
 | 1 — Scaffold Next.js + CI                   | Merged       |
 | 2 — Upload + Canvas workspace               | Merged       |
 | 3 — Auto-Detect Subjects (MODNet + watershed)| Merged      |
-| 4a — Jelly mask data structure + brush      | Next         |
-| 4b — Animated jelly outline                 | Pending      |
-| 5 — Punch + Save sticker                    | Pending      |
-| 6a/6b — Storage interface + Vercel Blob     | Pending      |
-| 7 — Collage homepage                        | Pending      |
-| 8 — Polish + Production deploy              | Pending      |
+| 4a — Jelly mask data structure + brush      | In review    |
+| 4b — Animated jelly outline                 | In review    |
+| 5 — Punch + Save sticker                    | In review    |
+| 6a — Storage interface + memory stub        | In review    |
+| 6b — Vercel Blob + ratelimit + moderation   | In review    |
+| 7 — Collage homepage                        | In review    |
+| 8 — Polish + Production deploy              | In review    |
+
+### Production env
+
+For the Vercel Blob backend (Step 6b) and abuse defense to operate, the
+production project needs:
+
+| Variable | Purpose |
+| --- | --- |
+| `STORAGE_DRIVER=blob` | Selects the Vercel Blob adapter |
+| `BLOB_READ_WRITE_TOKEN` | Set automatically when the Blob store is linked |
+| `UPSTASH_REDIS_REST_URL` / `_TOKEN` | Per-IP rate limit; required in prod |
+| `RATELIMIT_SALT` | Salts the IP hash; rotated weekly via cron stub |
+| `MODERATION_ENDPOINT` | HTTP NSFW gate; `{flagged}` JSON contract |
+| `MODERATION_API_KEY` | Optional bearer for the moderation endpoint |
+| `ADMIN_TOKEN` | Gates `/admin/queue` via the proxy.ts |
+| `CRON_SECRET` | Vercel cron `Authorization: Bearer …` |
+| `NEXT_PUBLIC_SITE_URL` | Used by metadataBase + sitemap |
+
+### Smoke test journey
+
+End-to-end happy path (manual):
+1. Open `/punch`, drop a notebook photo.
+2. Wait for MODNet to load (~25 MB once), hover a subject — outline wobbles.
+3. Click subject → jelly editor opens with green tinted fill + wobble.
+4. Refine with Add / Subtract / Erase, undo a few times.
+5. Hit Punch → sticker appears in tray; click Download → PNG saves.
+6. Submit via `submitSticker` server action → sticker shows on `/`.
+7. Open the sticker modal on `/`; click Report → tile disappears.
+8. (Admin) `/admin/queue?token=$ADMIN_TOKEN` lists recent stickers; Hide works.
 
 Production preview deployed via Vercel CLI: <https://stickerpunch.vercel.app>. Automatic PR previews depend on the Vercel GitHub App being installed on `sixwires/stickerpunch` (still pending — see [Deploy](#deploy) below).
 
