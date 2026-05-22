@@ -6,6 +6,7 @@ import { Canvas } from "./Canvas";
 import { Dropzone } from "./Dropzone";
 import { JellyEditor } from "./JellyEditor";
 import { JellyToolbar } from "./JellyToolbar";
+import { SubjectJellyOutline } from "./SubjectJellyOutline";
 import { SubjectOverlay } from "./SubjectOverlay";
 import { SplitTool } from "./SplitTool";
 import { useWorkspace } from "@/lib/workspace/store";
@@ -74,6 +75,7 @@ export function Workspace() {
     <div className="relative flex-1 flex flex-col">
       <Canvas />
       {!jellyOpen ? <SubjectOverlay /> : null}
+      {!jellyOpen ? <SubjectJellyOutline /> : null}
       {!jellyOpen ? <SplitTool active={splitMode} onDone={handleSplitDone} /> : null}
       {jellyOpen ? <JellyEditor /> : null}
       {jellyOpen ? <JellyToolbar /> : null}
