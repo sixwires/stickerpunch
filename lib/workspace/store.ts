@@ -6,8 +6,16 @@ import { JellyMask } from "@/lib/mask/JellyMask";
 import { decodeSnapshot, encodeSnapshot, SnapshotStack } from "@/lib/mask/snapshots";
 import type { ModelStatus, SegmentationResult, Subject } from "@/lib/segmentation/types";
 
-export interface DraftSticker {
+export interface LocalSticker {
   id: string;
+  /** Blob URL of the punched PNG. Caller is responsible for revocation. */
+  url: string;
+  width: number;
+  height: number;
+  /** Source-space bounding box that was cropped. */
+  bbox: { x: number; y: number; w: number; h: number };
+  /** Punch time (ms since epoch). */
+  createdAt: number;
 }
 
 export interface SourceMeta {
@@ -55,7 +63,7 @@ export interface WorkspaceState {
   imageBitmap: ImageBitmap | null;
   source: SourceMeta | null;
   transform: Transform;
-  stickers: DraftSticker[];
+  stickers: LocalSticker[];
 
   segmentation: SegmentationState | null;
   modelStatus: ModelStatus;
@@ -79,6 +87,8 @@ export interface WorkspaceState {
   bumpJellyVersion: () => void;
   undoJelly: () => void;
   redoJelly: () => void;
+  addSticker: (sticker: LocalSticker) => void;
+  removeSticker: (id: string) => void;
   reset: () => void;
 }
 
@@ -249,9 +259,18 @@ export const useWorkspace = create<WorkspaceState>((set, get) => ({
       },
     });
   },
+  addSticker: (sticker) => {
+    set((state) => ({ stickers: [...state.stickers, sticker] }));
+  },
+  removeSticker: (id) => {
+    const target = get().stickers.find((s) => s.id === id);
+    if (target) URL.revokeObjectURL(target.url);
+    set((state) => ({ stickers: state.stickers.filter((s) => s.id !== id) }));
+  },
   reset: () => {
-    const previous = get().imageBitmap;
+    const { imageBitmap: previous, stickers } = get();
     if (previous) previous.close();
+    for (const s of stickers) URL.revokeObjectURL(s.url);
     snapshots.clear();
     set({
       imageBitmap: null,

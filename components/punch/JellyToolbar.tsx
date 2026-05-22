@@ -1,5 +1,9 @@
 "use client";
 
+import { useState } from "react";
+import { nanoid } from "nanoid";
+
+import { punchSticker } from "@/lib/sticker/punch";
 import { useWorkspace, type JellyTool } from "@/lib/workspace/store";
 
 const TOOLS: { id: JellyTool; label: string; help: string }[] = [
@@ -19,8 +23,44 @@ export function JellyToolbar() {
   const undo = useWorkspace((s) => s.undoJelly);
   const redo = useWorkspace((s) => s.redoJelly);
   const exit = useWorkspace((s) => s.exitJelly);
+  const addSticker = useWorkspace((s) => s.addSticker);
+  const [punching, setPunching] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   if (!jelly) return null;
+
+  const handlePunch = async () => {
+    const state = useWorkspace.getState();
+    const bitmap = state.imageBitmap;
+    const meta = state.source;
+    const currentJelly = state.jelly;
+    if (!bitmap || !meta || !currentJelly) return;
+    setError(null);
+    setPunching(true);
+    try {
+      const result = await punchSticker({
+        source: bitmap,
+        sourceWidth: meta.width,
+        sourceHeight: meta.height,
+        mask: currentJelly.mask,
+      });
+      const url = URL.createObjectURL(result.blob);
+      addSticker({
+        id: nanoid(12),
+        url,
+        width: result.width,
+        height: result.height,
+        bbox: result.bbox,
+        createdAt: Date.now(),
+      });
+      exit();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Punch failed";
+      setError(message);
+    } finally {
+      setPunching(false);
+    }
+  };
 
   return (
     <div
@@ -103,12 +143,26 @@ export function JellyToolbar() {
         </button>
         <button
           type="button"
-          onClick={exit}
-          className="rounded-full px-3 py-1 text-xs bg-neutral-900 text-white hover:bg-neutral-800 transition-colors"
+          onClick={handlePunch}
+          disabled={punching}
+          className="rounded-full px-3 py-1 text-xs bg-pink-500 text-white hover:bg-pink-600 disabled:opacity-50 transition-colors"
+          title="Punch this mask into a sticker"
         >
-          Done
+          {punching ? "Punching…" : "Punch"}
+        </button>
+        <button
+          type="button"
+          onClick={exit}
+          className="rounded-full px-3 py-1 text-xs bg-neutral-100 text-neutral-700 hover:bg-neutral-200 transition-colors"
+        >
+          Cancel
         </button>
       </div>
+      {error ? (
+        <div className="absolute -top-9 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-red-600 text-white px-3 py-1 text-xs shadow">
+          {error}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Canvas } from "./Canvas";
 import { Dropzone } from "./Dropzone";
 import { JellyEditor } from "./JellyEditor";
 import { JellyToolbar } from "./JellyToolbar";
+import { StickerTray } from "./StickerTray";
 import { SubjectJellyOutline } from "./SubjectJellyOutline";
 import { SubjectOverlay } from "./SubjectOverlay";
 import { SplitTool } from "./SplitTool";
@@ -72,52 +73,55 @@ export function Workspace() {
   if (!imageBitmap) return <Dropzone />;
 
   return (
-    <div className="relative flex-1 flex flex-col">
-      <Canvas />
-      {!jellyOpen ? <SubjectOverlay /> : null}
-      {!jellyOpen ? <SubjectJellyOutline /> : null}
-      {!jellyOpen ? <SplitTool active={splitMode} onDone={handleSplitDone} /> : null}
-      {jellyOpen ? <JellyEditor /> : null}
-      {jellyOpen ? <JellyToolbar /> : null}
-      <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-3 pointer-events-none">
-        <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-600 shadow-sm pointer-events-auto">
-          {source?.fileName ?? "image"} · {imageBitmap.width}×{imageBitmap.height}
-          {segmentation ? ` · ${segmentation.subjects.length} subjects` : ""}
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="relative flex-1 flex flex-col min-h-0">
+        <Canvas />
+        {!jellyOpen ? <SubjectOverlay /> : null}
+        {!jellyOpen ? <SubjectJellyOutline /> : null}
+        {!jellyOpen ? <SplitTool active={splitMode} onDone={handleSplitDone} /> : null}
+        {jellyOpen ? <JellyEditor /> : null}
+        {jellyOpen ? <JellyToolbar /> : null}
+        <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-3 pointer-events-none">
+          <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-600 shadow-sm pointer-events-auto">
+            {source?.fileName ?? "image"} · {imageBitmap.width}×{imageBitmap.height}
+            {segmentation ? ` · ${segmentation.subjects.length} subjects` : ""}
+          </div>
+          <div className="flex items-center gap-2 pointer-events-auto">
+            {segmentation && !jellyOpen ? (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setSplitMode((v) => !v)}
+                  className={`rounded-full px-3 py-1.5 text-xs shadow-sm transition-colors backdrop-blur ${
+                    splitMode
+                      ? "bg-pink-500 text-white hover:bg-pink-600"
+                      : "bg-white/90 text-neutral-700 hover:bg-white"
+                  }`}
+                  aria-pressed={splitMode}
+                >
+                  {splitMode ? "Cancel split" : "Split here"}
+                </button>
+                <button
+                  type="button"
+                  onClick={startBlankJelly}
+                  className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-700 shadow-sm hover:bg-white transition-colors"
+                >
+                  Draw from scratch
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              onClick={reset}
+              className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-700 shadow-sm hover:bg-white transition-colors"
+            >
+              Replace image
+            </button>
+          </div>
         </div>
-        <div className="flex items-center gap-2 pointer-events-auto">
-          {segmentation && !jellyOpen ? (
-            <>
-              <button
-                type="button"
-                onClick={() => setSplitMode((v) => !v)}
-                className={`rounded-full px-3 py-1.5 text-xs shadow-sm transition-colors backdrop-blur ${
-                  splitMode
-                    ? "bg-pink-500 text-white hover:bg-pink-600"
-                    : "bg-white/90 text-neutral-700 hover:bg-white"
-                }`}
-                aria-pressed={splitMode}
-              >
-                {splitMode ? "Cancel split" : "Split here"}
-              </button>
-              <button
-                type="button"
-                onClick={startBlankJelly}
-                className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-700 shadow-sm hover:bg-white transition-colors"
-              >
-                Draw from scratch
-              </button>
-            </>
-          ) : null}
-          <button
-            type="button"
-            onClick={reset}
-            className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-700 shadow-sm hover:bg-white transition-colors"
-          >
-            Replace image
-          </button>
-        </div>
+        {!jellyOpen ? <ModelStatusBanner status={modelStatus} /> : null}
       </div>
-      {!jellyOpen ? <ModelStatusBanner status={modelStatus} /> : null}
+      <StickerTray />
     </div>
   );
 }
