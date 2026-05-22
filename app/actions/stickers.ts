@@ -2,6 +2,9 @@
 
 import { revalidatePath } from "next/cache";
 
+import { getModerator } from "@/lib/moderation/server";
+import { checkIpLimit } from "@/lib/ratelimit/ip";
+import { hashIp, readClientIp } from "@/lib/ratelimit/iphash";
 import { getStorage } from "@/lib/storage";
 import type { ListResult, Sticker } from "@/lib/storage/types";
 
@@ -10,14 +13,15 @@ const MIN_DIM = 16;
 const MAX_DIM = 4096;
 const MAX_LIST_LIMIT = 60;
 
+export type SubmitError =
+  | { ok: false; error: "missing_file" | "invalid_type" | "invalid_size" | "invalid_dimensions" | "invalid_id" }
+  | { ok: false; error: "rate_limited"; reset: number }
+  | { ok: false; error: "moderation_failed" }
+  | { ok: false; error: "service_unavailable" };
+
 export interface SubmitResult {
   ok: true;
   sticker: Sticker;
-}
-
-export interface SubmitError {
-  ok: false;
-  error: string;
 }
 
 export async function submitSticker(formData: FormData): Promise<SubmitResult | SubmitError> {
@@ -37,8 +41,23 @@ export async function submitSticker(formData: FormData): Promise<SubmitResult | 
     return { ok: false, error: "invalid_dimensions" };
   }
 
+  const ip = await readClientIp();
+  const limit = await checkIpLimit(ip);
+  if (!limit.ok) {
+    if (limit.reason === "config_missing") {
+      return { ok: false, error: "service_unavailable" };
+    }
+    return { ok: false, error: "rate_limited", reset: limit.reset };
+  }
+
+  const moderation = await getModerator().check(fileEntry);
+  if (!moderation.allowed) {
+    return { ok: false, error: "moderation_failed" };
+  }
+
+  const ipHashSalted = await hashIp(ip);
   const storage = getStorage();
-  const sticker = await storage.put(fileEntry, { width, height });
+  const sticker = await storage.put(fileEntry, { width, height, ipHashSalted });
   revalidatePath("/");
   return { ok: true, sticker };
 }
@@ -54,7 +73,7 @@ export async function listStickers(
 export async function hideSticker(
   id: string,
   reason?: string,
-): Promise<{ ok: true } | SubmitError> {
+): Promise<{ ok: true } | { ok: false; error: "invalid_id" }> {
   if (!id || typeof id !== "string") {
     return { ok: false, error: "invalid_id" };
   }

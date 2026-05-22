@@ -4,6 +4,7 @@
  * required env is missing.
  */
 
+import { createBlobAdapter } from "./blob";
 import { createMemoryAdapter } from "./memory";
 import type { StorageAdapter, StorageDriverName } from "./types";
 
@@ -24,9 +25,8 @@ export function getStorage(): StorageAdapter {
   }
 
   if (driver === "blob") {
-    throw new Error(
-      "STORAGE_DRIVER=blob requires the Step 6b adapter, which is not yet present.",
-    );
+    cached = createBlobAdapter();
+    return cached;
   }
 
   throw new Error(`Unknown STORAGE_DRIVER: ${driver}`);
