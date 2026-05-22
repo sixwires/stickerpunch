@@ -4,10 +4,13 @@ import { useCallback, useEffect, useState } from "react";
 
 import { Canvas } from "./Canvas";
 import { Dropzone } from "./Dropzone";
+import { JellyEditor } from "./JellyEditor";
+import { JellyToolbar } from "./JellyToolbar";
 import { SubjectOverlay } from "./SubjectOverlay";
 import { SplitTool } from "./SplitTool";
 import { useWorkspace } from "@/lib/workspace/store";
 import { getSegmentClient } from "@/lib/segmentation";
+import type { Subject } from "@/lib/segmentation/types";
 
 export function Workspace() {
   const imageBitmap = useWorkspace((s) => s.imageBitmap);
@@ -17,8 +20,21 @@ export function Workspace() {
   const modelStatus = useWorkspace((s) => s.modelStatus);
   const setModelStatus = useWorkspace((s) => s.setModelStatus);
   const setSegmentation = useWorkspace((s) => s.setSegmentation);
+  const activeSubjectId = useWorkspace((s) => s.activeSubjectId);
+  const jellyOpen = useWorkspace((s) => s.jelly !== null);
+  const startJellyFromSubject = useWorkspace((s) => s.startJellyFromSubject);
+  const startBlankJelly = useWorkspace((s) => s.startBlankJelly);
 
   const [splitMode, setSplitMode] = useState(false);
+
+  // When a subject is clicked, downsample its mask into a JellyMask.
+  useEffect(() => {
+    if (!activeSubjectId || jellyOpen) return;
+    const seg = useWorkspace.getState().segmentation;
+    if (!seg) return;
+    const subject: Subject | undefined = seg.subjects.find((s) => s.id === activeSubjectId);
+    if (subject) startJellyFromSubject(subject);
+  }, [activeSubjectId, jellyOpen, startJellyFromSubject]);
 
   useEffect(() => {
     if (!imageBitmap) return;
@@ -57,27 +73,38 @@ export function Workspace() {
   return (
     <div className="relative flex-1 flex flex-col">
       <Canvas />
-      <SubjectOverlay />
-      <SplitTool active={splitMode} onDone={handleSplitDone} />
+      {!jellyOpen ? <SubjectOverlay /> : null}
+      {!jellyOpen ? <SplitTool active={splitMode} onDone={handleSplitDone} /> : null}
+      {jellyOpen ? <JellyEditor /> : null}
+      {jellyOpen ? <JellyToolbar /> : null}
       <div className="absolute top-3 left-3 right-3 flex items-center justify-between gap-3 pointer-events-none">
         <div className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-600 shadow-sm pointer-events-auto">
           {source?.fileName ?? "image"} · {imageBitmap.width}×{imageBitmap.height}
           {segmentation ? ` · ${segmentation.subjects.length} subjects` : ""}
         </div>
         <div className="flex items-center gap-2 pointer-events-auto">
-          {segmentation ? (
-            <button
-              type="button"
-              onClick={() => setSplitMode((v) => !v)}
-              className={`rounded-full px-3 py-1.5 text-xs shadow-sm transition-colors backdrop-blur ${
-                splitMode
-                  ? "bg-pink-500 text-white hover:bg-pink-600"
-                  : "bg-white/90 text-neutral-700 hover:bg-white"
-              }`}
-              aria-pressed={splitMode}
-            >
-              {splitMode ? "Cancel split" : "Split here"}
-            </button>
+          {segmentation && !jellyOpen ? (
+            <>
+              <button
+                type="button"
+                onClick={() => setSplitMode((v) => !v)}
+                className={`rounded-full px-3 py-1.5 text-xs shadow-sm transition-colors backdrop-blur ${
+                  splitMode
+                    ? "bg-pink-500 text-white hover:bg-pink-600"
+                    : "bg-white/90 text-neutral-700 hover:bg-white"
+                }`}
+                aria-pressed={splitMode}
+              >
+                {splitMode ? "Cancel split" : "Split here"}
+              </button>
+              <button
+                type="button"
+                onClick={startBlankJelly}
+                className="rounded-full bg-white/90 backdrop-blur px-3 py-1.5 text-xs text-neutral-700 shadow-sm hover:bg-white transition-colors"
+              >
+                Draw from scratch
+              </button>
+            </>
           ) : null}
           <button
             type="button"
@@ -88,7 +115,7 @@ export function Workspace() {
           </button>
         </div>
       </div>
-      <ModelStatusBanner status={modelStatus} />
+      {!jellyOpen ? <ModelStatusBanner status={modelStatus} /> : null}
     </div>
   );
 }
